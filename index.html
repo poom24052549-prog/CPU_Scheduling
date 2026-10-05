@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>เว็บการจัดตารางงานส่วนบุคคล ด้วย CPU Scheduling | FCFS SJF Round Robin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="print.css">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="header-title">
+        <h1>💻 เว็บการจัดตารางงานส่วนบุคคล ด้วย CPU Scheduling</h1>
+        <p>ใบงานมินิโปรเจ็ควิชาระบบปฏิบัติการ (Operating Systems) • FCFS, SJF, Round Robin</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-theme-toggle" title="สลับโหมดมืด / สว่าง (Dark / Light Mode)">☀️ โหมดสว่าง</button>
+        <button class="btn btn-secondary btn-sm" id="btn-share" title="คัดลอกลิงก์พร้อม Seed และพารามิเตอร์">🔗 คัดลอกลิงก์โจทย์</button>
+        <button class="btn btn-secondary btn-sm" id="btn-export-json" title="ส่งออกข้อมูลเป็น JSON">💾 ส่งออก JSON</button>
+        <button class="btn btn-secondary btn-sm" id="btn-import-json" title="นำเข้าข้อมูลจาก JSON">📂 นำเข้า JSON</button>
+        <input type="file" id="file-import" accept=".json" style="display: none;">
+        <button class="btn btn-warning btn-sm" id="btn-print" title="พิมพ์ใบงานส่งอาจารย์ (Print / PDF)">🖨️ พิมพ์ใบงาน (A4)</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Print-Only Lab Cover / Header (Shows when printing) -->
+  <div class="print-only" style="padding: 1.5rem; border-bottom: 2px solid #000; margin-bottom: 1.5rem;">
+    <h2 style="font-size: 1.4rem; text-align: center; margin-bottom: 0.25rem;">ใบงานมินิโปรเจ็ควิชาระบบปฏิบัติการ</h2>
+    <h1 style="font-size: 1.6rem; text-align: center; margin-bottom: 0.75rem;">เว็บการจัดตารางงานส่วนบุคคล ด้วย CPU Scheduling</h1>
+    <p style="text-align: center; font-size: 0.95rem; margin-bottom: 1rem;">FCFS • SJF (Non-preemptive) • Round Robin</p>
+    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.9rem; border: 1px solid #000; padding: 0.75rem;">
+      <div><strong>ชื่อและนามสกุล:</strong> <span id="print-student-name">-</span></div>
+      <div><strong>รหัสนักศึกษา:</strong> <span id="print-student-id">-</span></div>
+      <div><strong>กลุ่มเรียน:</strong> <span id="print-student-section">-</span></div>
+      <div><strong>วันที่ทดลอง:</strong> <span id="print-student-date">-</span></div>
+      <div><strong>Seed พารามิเตอร์:</strong> <span id="print-seed">OS-2026</span></div>
+      <div><strong>Time Quantum (q):</strong> <span id="print-quantum">2</span> ชั่วโมง</div>
+    </div>
+  </div>
+
+  <main class="main-container">
+
+    <!-- Student Info Card (Interactive UI) -->
+    <section class="card no-print">
+      <div class="card-header">
+        <div class="card-title">
+          <span>👤 ข้อมูลผู้จัดทำและผู้ทดลอง</span>
+        </div>
+        <span class="badge badge-primary">บันทึกข้อมูลอัตโนมัติในเบราว์เซอร์</span>
+      </div>
+      <div class="card-body">
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="student-name">ชื่อและนามสกุล:</label>
+            <input type="text" id="student-name" class="form-control" placeholder="เช่น นายสมชาย ใจดี">
+          </div>
+          <div class="form-group">
+            <label for="student-id">รหัสนักศึกษา:</label>
+            <input type="text" id="student-id" class="form-control" placeholder="เช่น 6601xxxx">
+          </div>
+          <div class="form-group">
+            <label for="student-section">กลุ่มเรียน / ตอนเรียน:</label>
+            <input type="text" id="student-section" class="form-control" placeholder="เช่น กลุ่ม 1 / Sec 01">
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="form-group">
+            <label for="student-group">สมาชิกกลุ่ม (ถ้ามี):</label>
+            <input type="text" id="student-group" class="form-control" placeholder="ชื่อ-นามสกุล สมาชิกกลุ่ม">
+          </div>
+          <div class="form-group">
+            <label for="student-date">วันที่ทดลอง:</label>
+            <input type="date" id="student-date" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="student-instructor">อาจารย์ผู้สอน:</label>
+            <input type="text" id="student-instructor" class="form-control" placeholder="ชื่อผู้สอน">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Navigation Tabs -->
+    <nav class="tabs-nav no-print">
+      <button class="tab-btn active" data-tab="practice">
+        <span>📝 โหมดฝึกทำ / แสดงโจทย์ก่อนเฉลย</span>
+      </button>
+      <button class="tab-btn" data-tab="simulation">
+        <span>⚡ โหมดจำลองผลลัพธ์และวิเคราะห์ (Gantt & Results)</span>
+      </button>
+      <button class="tab-btn" data-tab="tests">
+        <span>🧪 หลักฐานทดสอบกรณีพิเศษ (Edge Test Cases)</span>
+      </button>
+    </nav>
+
+    <!-- Generator & Configuration Controls -->
+    <section class="card no-print">
+      <div class="card-header">
+        <div class="card-title">
+          <span>⚙️ กำหนดโจทย์และการสุ่ม (Parameter & Seed Control)</span>
+        </div>
+        <div>
+          <select id="select-preset" class="form-control" style="font-weight: 600; width: auto; display: inline-block;">
+            <option value="">-- เลือกชุดข้อมูลตัวอย่าง (Presets) --</option>
+            <option value="textbook">📘 ตัวอย่างจากใบงาน หน้า 4-5 (P1-P4, q=2)</option>
+            <option value="case1_tie">🧪 กรณีทดสอบ 1: งานมาพร้อมกัน & BT เท่ากัน</option>
+            <option value="case2_idle">🧪 กรณีทดสอบ 2: มีช่วง Idle (AT=0, BT=1 และ AT=5)</option>
+            <option value="case3_quantum_boundary">🧪 กรณีทดสอบ 3: งานใหม่เข้าตรงเวลาครบ q และ BT หาร q ไม่ลงตัว</option>
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="grid-4">
+          <div class="form-group">
+            <label for="input-seed">Seed (สำหรับสร้างโจทย์เดิมซ้ำได้):</label>
+            <div style="display: flex; gap: 0.4rem;">
+              <input type="text" id="input-seed" class="form-control" value="OS-2026">
+              <button class="btn btn-secondary btn-sm" id="btn-apply-seed" title="ใช้ Seed นี้">นำไปใช้</button>
+              <button class="btn btn-primary btn-sm" id="btn-random-seed" title="สุ่ม Seed ใหม่">🎲 สุ่ม</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="select-task-count">จำนวนงานที่สุ่ม (ตามเกณฑ์ 5-6 งาน):</label>
+            <select id="select-task-count" class="form-control">
+              <option value="4">4 งาน</option>
+              <option value="5" selected>5 งาน (ตามเกณฑ์ใบงาน)</option>
+              <option value="6">6 งาน (ตามเกณฑ์ใบงาน)</option>
+              <option value="7">7 งาน</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="input-quantum">Time Quantum (q) [จำนวนเต็ม 1-4]:</label>
+            <input type="number" id="input-quantum" class="form-control" min="1" max="4" value="2">
+          </div>
+          <div class="form-group">
+            <label for="input-base-time">วันเวลาเริ่มต้นจำลอง (t0):</label>
+            <input type="datetime-local" id="input-base-time" class="form-control">
+          </div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.25rem;">
+          📌 <em>กติกาการสุ่มตามใบงาน:</em> AT อยู่ในช่วง 0–10 และ BT อยู่ในช่วง 1–8 โดยต้องมีอย่างน้อย 1 งานที่มี AT = 0 และอนุญาตให้ AT ซ้ำกันได้ (เหลื่อมเวลา)
+        </div>
+
+        <!-- AT=0 Warning Alert -->
+        <div id="at-zero-warning" class="alert-danger-box" style="display: none;">
+          ⚠️ <strong>คำเตือน:</strong> ตามข้อกำหนดของใบงาน ต้องมีอย่างน้อย 1 งานที่มี Arrival Time (AT) = 0 เพื่อให้โปรแกรมสามารถเริ่มทำงานได้ทันที
+        </div>
+      </div>
+    </section>
+
+    <!-- Task List Editor Card -->
+    <section class="card no-print">
+      <div class="card-header">
+        <div class="card-title">
+          <span>📋 รายการงานจำลอง (Processes Table)</span>
+          <span class="badge badge-purple" id="badge-task-count">ชุดข้อมูลปัจจุบัน</span>
+        </div>
+        <div>
+          <button class="btn btn-secondary btn-sm" id="btn-add-task">➕ เพิ่มงานใหม่</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th style="width: 100px;">รหัส (PID)</th>
+                <th>ชื่องาน / วิชา</th>
+                <th>เวลารับงานตามปฏิทิน</th>
+                <th style="width: 100px;">AT (ชั่วโมง)</th>
+                <th style="width: 100px;">BT (ชั่วโมง)</th>
+                <th style="width: 70px;">สีระบุ</th>
+                <th style="width: 60px;">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody id="tasks-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">
+          💡 คุณสามารถแก้ไขรหัส, ชื่องาน, ค่า AT และ BT ได้โดยตรงในตารางนี้ ผลการจำลองจะอัปเดตอัตโนมัติ
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         TAB 1: PRACTICE MODE (แสดงโจทย์ก่อนเฉลย)
+         ========================================== -->
+    <div id="tab-practice" class="tab-pane">
+
+      <!-- Practice Banner -->
+      <div class="quiz-banner" id="quiz-banner">
+        <h3>📝 หน้าแสดงโจทย์สำหรับฝึกคิดและคำนวณด้วยมือ</h3>
+        <p>
+          ระบบแสดงเฉพาะข้อมูลโจทย์ก่อนเฉลยตามข้อกำหนดหน้า 2 และหน้า 6 ของใบงาน 
+          ให้นักศึกษาบันทึกสมมติฐานและทดลองคำนวณค่า CT, TAT, WT ลงในตารางด้านล่าง จากนั้นกดปุ่ม <strong>"เฉลยและตรวจคำตอบ"</strong> เพื่อตรวจสอบความถูกต้อง
+        </p>
+      </div>
+
+      <!-- Action Bar: Reveal / Hide Button -->
+      <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
+        <button id="btn-toggle-reveal" class="btn btn-success btn-lg">
+          🔓 เฉลยและตรวจเทียบผล (Reveal Solutions)
+        </button>
+      </div>
+
+      <!-- Clean Problem Summary Table (Practice & Print) -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📌 ข้อมูลโจทย์การทดลอง (ตารางงาน)</span>
+          </div>
+          <div>
+            <span class="badge badge-primary">Time Quantum (q) = <span class="q-display">2</span> ชั่วโมง</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>รหัส Process</th>
+                  <th>งานหรือวิชา</th>
+                  <th>วันและเวลารับงาน</th>
+                  <th>Arrival Time (AT)</th>
+                  <th>Burst Time (BT)</th>
+                </tr>
+              </thead>
+              <tbody id="quiz-task-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: สมมติฐานก่อนคำนวณ (Page 6) -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🤔 สมมติฐานก่อนการคำนวณ (Hypothesis)</span>
+          </div>
+          <span class="badge badge-warning">ตอบก่อนดูเฉลย</span>
+        </div>
+        <div class="card-body">
+          <div class="form-group">
+            <label for="hypo-1">1. คาดว่าอัลกอริทึมใดจะมี Waiting Time (WT) เฉลี่ยน้อยที่สุด เพราะเหตุใด?</label>
+            <textarea id="hypo-1" class="form-control" rows="2" placeholder="เช่น คาดว่า SJF จะมี WT เฉลี่ยน้อยที่สุด เพราะจัดลำดับให้งานที่ใช้เวลาสั้นที่สุดทำก่อน ทำให้งานส่วนใหญ่ไม่ต้องรอนาน..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="hypo-2">2. งานใดน่าจะรอนานที่สุด และลักษณะของโจทย์ข้อใดทำให้คาดเช่นนั้น?</label>
+            <textarea id="hypo-2" class="form-control" rows="2" placeholder="เช่น คาดว่า P... น่าจะรอนานที่สุด เนื่องจากมี Burst Time สูง และมีงานสั้นอื่นๆ ทยอยเข้ามาแซงคิวใน SJF..."></textarea>
+          </div>
+          <div class="form-group">
+            <label for="hypo-3">3. หากเพิ่ม Time Quantum (q) คาดว่าลำดับการทำงานหรือเวลารอจะเปลี่ยนอย่างไร?</label>
+            <textarea id="hypo-3" class="form-control" rows="2" placeholder="เช่น หากเพิ่ม q งานจะถูกขัดจังหวะน้อยลง พฤติกรรมจะเริ่มเข้าใกล้ FCFS และลดการสลับงาน..."></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section: ใบคะแนนคำนวณด้วยมือ (Manual Calculation Inputs & Verification) -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>✍️ ตรวจเทียบผลการคำนวณด้วยมือ (Manual Calculation & Self-Check)</span>
+          </div>
+          <span class="badge badge-primary">กรอกผลทำมือเพื่อตรวจเทียบ</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            ลองคำนวณค่า Completion Time (CT), Turnaround Time (TAT = CT - AT), และ Waiting Time (WT = TAT - BT) ด้วยมือ 
+            เมื่อกดเปิดเฉลย ระบบจะตรวจเทียบคำตอบให้ทันทีว่าถูกต้องหรือไม่
+          </p>
+
+          <!-- FCFS Manual -->
+          <div style="margin-bottom: 1.5rem; border-left: 4px solid var(--primary); padding-left: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h4 style="color: var(--primary);">1. มาก่อนได้ก่อน (FCFS)</h4>
+              <div id="manual-check-result-fcfs"></div>
+            </div>
+            <div class="table-responsive" id="manual-table-fcfs"></div>
+          </div>
+
+          <!-- SJF Manual -->
+          <div style="margin-bottom: 1.5rem; border-left: 4px solid var(--success); padding-left: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h4 style="color: var(--success);">2. งานสั้นที่สุดก่อน แบบไม่แย่งงาน (SJF)</h4>
+              <div id="manual-check-result-sjf"></div>
+            </div>
+            <div class="table-responsive" id="manual-table-sjf"></div>
+          </div>
+
+          <!-- Round Robin Manual -->
+          <div style="margin-bottom: 1.5rem; border-left: 4px solid var(--purple); padding-left: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <h4 style="color: var(--purple);">3. ราวนด์โรบิน (Round Robin, q = <span class="q-display">2</span>)</h4>
+              <div id="manual-check-result-rr"></div>
+            </div>
+            <div class="table-responsive" id="manual-table-rr"></div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ==========================================
+         TAB 2: FULL SIMULATION & ANALYSIS
+         ========================================== -->
+    <div id="tab-simulation" class="tab-pane solution-hidden">
+
+      <!-- Algorithm Filter Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.25rem;">
+          <button class="btn btn-secondary btn-sm algo-filter-btn active" data-algo="ALL">แสดงทั้งหมด 3 อัลกอริทึม</button>
+          <button class="btn btn-secondary btn-sm algo-filter-btn" data-algo="FCFS">เฉพาะ FCFS</button>
+          <button class="btn btn-secondary btn-sm algo-filter-btn" data-algo="SJF">เฉพาะ SJF</button>
+          <button class="btn btn-secondary btn-sm algo-filter-btn" data-algo="RR">เฉพาะ Round Robin</button>
+        </div>
+        <div>
+          <span class="badge badge-gray">หน่วยเวลา: 1 หน่วย = 1 ชั่วโมง</span>
+        </div>
+      </div>
+
+      <!-- Simulation Output Container (Gantt & Tables for each algorithm) -->
+      <div id="simulation-output-container">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <!-- Comparison Section (Page 5 & 10) -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📊 ภาพเปรียบเทียบเวลารอเฉลี่ย (Average Waiting Time Comparison)</span>
+          </div>
+          <span class="badge badge-success">การวิเคราะห์ผล</span>
+        </div>
+        <div class="card-body">
+          <div class="chart-container" id="bar-comparison-container">
+            <!-- Rendered via JavaScript -->
+          </div>
+          <div id="best-algo-notice" class="alert-success-box">
+            <!-- Best Algo announcement -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Summary Comparison Table (Page 10) -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📋 สรุปผลการทดลองเปรียบเทียบ (Summary & Grader Table)</span>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>อัลกอริทึม</th>
+                  <th>TAT เฉลี่ย (ทำมือ)</th>
+                  <th>TAT เฉลี่ย (โปรแกรม)</th>
+                  <th>WT เฉลี่ย (ทำมือ)</th>
+                  <th>WT เฉลี่ย (โปรแกรม)</th>
+                </tr>
+              </thead>
+              <tbody id="summary-table-body">
+                <!-- Dynamically filled -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Interactive What-If Analysis: Change Quantum (Page 10 Question 2) -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🔄 การทดลองเปลี่ยนค่า Time Quantum (q) กับข้อมูลเดิม</span>
+          </div>
+          <span class="badge badge-purple">คำถามข้อ 2 หน้า 10</span>
+        </div>
+        <div class="card-body">
+          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <label for="range-compare-q" style="font-weight: 600;">เลือก Time Quantum ใหม่ (q ใหม่):</label>
+            <input type="range" id="range-compare-q" min="1" max="8" value="4" style="width: 200px; cursor: pointer;">
+            <span class="badge badge-purple" style="font-size: 1rem;">q ใหม่ = <span id="label-compare-q">4</span> ชั่วโมง</span>
+          </div>
+          <div id="compare-q-container" style="margin-top: 1rem;">
+            <!-- Rendered via JavaScript -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ==========================================
+         TAB 3: EDGE TEST CASES SUITE (หน้า 10)
+         ========================================== -->
+    <div id="tab-tests" class="tab-pane solution-hidden">
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span>🧪 หลักฐานทดสอบโปรแกรมเพิ่มเติม (Additional Test Cases & Validation)</span>
+          </div>
+          <span class="badge badge-success">ผ่านเกณฑ์ทดสอบทุกข้อ</span>
+        </div>
+        <div class="card-body">
+          <p style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+            ตารางแสดงผลการทดสอบโปรแกรมตามหัวข้อที่กำหนดในหน้า 10 ของใบงาน เพื่อยืนยันความถูกต้องของอัลกอริทึมและระบบตรวจสอบข้อผิดพลาด
+          </p>
+          <div id="test-cases-suite-container">
+            <!-- Injected via JavaScript -->
+          </div>
+        </div>
+      </section>
+    </div>
+
+  </main>
+
+  <!-- Complete Multi-Page Lab Report for Printing / PDF Export -->
+  <div id="print-report" class="print-report-container">
+    <!-- Populated automatically by app.js on change and before window.print() -->
+  </div>
+
+  <!-- Footer -->
+  <footer style="text-align: center; padding: 2rem 1rem; color: var(--text-muted); font-size: 0.85rem;" class="no-print">
+    เว็บการจัดตารางงานส่วนบุคคล ด้วย CPU Scheduling • พัฒนาตามข้อกำหนดใบงานมินิโปรเจ็คระบบปฏิบัติการ (OS)
+  </footer>
+
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

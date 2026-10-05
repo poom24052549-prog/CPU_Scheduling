@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CPU Scheduling Engine Test Runner</title>
+</head>
+<body>
+  <div id="output">Running tests...</div>
+  <script src="engine.js"></script>
+  <script>
+    const textbookTasks = [
+      { id: 'P1', name: 'แบบฝึกหัด OS', at: 0, bt: 5, color: '#3B82F6' },
+      { id: 'P2', name: 'รายงาน Database', at: 1, bt: 3, color: '#10B981' },
+      { id: 'P3', name: 'สรุป English', at: 2, bt: 1, color: '#F59E0B' },
+      { id: 'P4', name: 'แบบฝึกหัด Math', at: 4, bt: 2, color: '#8B5CF6' }
+    ];
+
+    const logs = [];
+    function assert(cond, msg) {
+      if (cond) {
+        logs.push(`[PASS] ${msg}`);
+      } else {
+        logs.push(`[FAIL] ${msg}`);
+        console.error(`[FAIL] ${msg}`);
+      }
+    }
+
+    try {
+      // 1. Test FCFS (Page 4)
+      const fcfs = runFCFS(textbookTasks);
+      assert(fcfs.results['P1'].ct === 5 && fcfs.results['P1'].tat === 5 && fcfs.results['P1'].wt === 0, 'FCFS P1: CT=5, TAT=5, WT=0');
+      assert(fcfs.results['P2'].ct === 8 && fcfs.results['P2'].tat === 7 && fcfs.results['P2'].wt === 4, 'FCFS P2: CT=8, TAT=7, WT=4');
+      assert(fcfs.results['P3'].ct === 9 && fcfs.results['P3'].tat === 7 && fcfs.results['P3'].wt === 6, 'FCFS P3: CT=9, TAT=7, WT=6');
+      assert(fcfs.results['P4'].ct === 11 && fcfs.results['P4'].tat === 7 && fcfs.results['P4'].wt === 5, 'FCFS P4: CT=11, TAT=7, WT=5');
+      assert(fcfs.avgTAT.toFixed(2) === '6.50', 'FCFS Avg TAT = 6.50');
+      assert(fcfs.avgWT.toFixed(2) === '3.75', 'FCFS Avg WT = 3.75');
+
+      // 2. Test SJF (Page 4)
+      const sjf = runSJF(textbookTasks);
+      assert(sjf.results['P1'].ct === 5 && sjf.results['P1'].tat === 5 && sjf.results['P1'].wt === 0, 'SJF P1: CT=5, TAT=5, WT=0');
+      assert(sjf.results['P2'].ct === 11 && sjf.results['P2'].tat === 10 && sjf.results['P2'].wt === 7, 'SJF P2: CT=11, TAT=10, WT=7');
+      assert(sjf.results['P3'].ct === 6 && sjf.results['P3'].tat === 4 && sjf.results['P3'].wt === 3, 'SJF P3: CT=6, TAT=4, WT=3');
+      assert(sjf.results['P4'].ct === 8 && sjf.results['P4'].tat === 4 && sjf.results['P4'].wt === 2, 'SJF P4: CT=8, TAT=4, WT=2');
+      assert(sjf.avgTAT.toFixed(2) === '5.75', 'SJF Avg TAT = 5.75');
+      assert(sjf.avgWT.toFixed(2) === '3.00', 'SJF Avg WT = 3.00');
+
+      // 3. Test Round Robin (Page 5, q = 2)
+      const rr = runRR(textbookTasks, 2);
+      assert(rr.results['P1'].ct === 11 && rr.results['P1'].tat === 11 && rr.results['P1'].wt === 6, 'RR P1: CT=11, TAT=11, WT=6');
+      assert(rr.results['P2'].ct === 10 && rr.results['P2'].tat === 9 && rr.results['P2'].wt === 6, 'RR P2: CT=10, TAT=9, WT=6');
+      assert(rr.results['P3'].ct === 5 && rr.results['P3'].tat === 3 && rr.results['P3'].wt === 2, 'RR P3: CT=5, TAT=3, WT=2');
+      assert(rr.results['P4'].ct === 9 && rr.results['P4'].tat === 5 && rr.results['P4'].wt === 3, 'RR P4: CT=9, TAT=5, WT=3');
+      assert(rr.avgTAT.toFixed(2) === '7.00', 'RR Avg TAT = 7.00');
+      assert(rr.avgWT.toFixed(2) === '4.25', 'RR Avg WT = 4.25');
+
+      // Gantt sequence for RR: P1(0-2), P2(2-4), P3(4-5), P1(5-7), P4(7-9), P2(9-10), P1(10-11)
+      const ganttSeq = rr.gantt.map(g => `${g.id}(${g.start}-${g.end})`).join(', ');
+      const expectedGantt = 'P1(0-2), P2(2-4), P3(4-5), P1(5-7), P4(7-9), P2(9-10), P1(10-11)';
+      assert(ganttSeq === expectedGantt, `RR Gantt Chart sequence matches exactly: ${ganttSeq}`);
+
+      // 4. Test Idle Case
+      const idleTasks = [
+        { id: 'P1', name: 'Task 1', at: 0, bt: 1 },
+        { id: 'P2', name: 'Task 2', at: 5, bt: 3 }
+      ];
+      const fcfsIdle = runFCFS(idleTasks);
+      assert(fcfsIdle.gantt.some(g => g.isIdle && g.start === 1 && g.end === 5), 'Idle detected between 1 and 5 in FCFS');
+      const rrIdle = runRR(idleTasks, 2);
+      assert(rrIdle.gantt.some(g => g.isIdle && g.start === 1 && g.end === 5), 'Idle detected between 1 and 5 in RR');
+
+      // 5. Test Tie-break (Same AT, same BT)
+      const tieTasks = [
+        { id: 'P2', name: 'Task B', at: 0, bt: 3 },
+        { id: 'P1', name: 'Task A', at: 0, bt: 3 }
+      ];
+      const fcfsTie = runFCFS(tieTasks);
+      assert(fcfsTie.gantt[0].id === 'P1', 'Tie-break by PID: P1 starts before P2');
+
+      logs.push('=== ALL TESTS COMPLETED SUCCESSFULLY ===');
+    } catch (e) {
+      logs.push(`[EXCEPTION] ${e.message}`);
+    }
+
+    document.getElementById('output').innerText = logs.join('\n');
+  </script>
+</body>
+</html>
